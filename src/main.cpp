@@ -281,12 +281,16 @@ int main() {
             // Determine the message based on the distance
             if(distance > 0){
               if(distance <= STOP_DISTANCE) {
-                  uart_println("STOP");
+                  //uart_println("STOP");
                   message = "STOP";
               } else if(distance <= SLOW_DISTANCE && distance > STOP_DISTANCE) {
-                  uart_println("SLOW");
+                  //uart_println("SLOW");
                   message = "SLOW";
               } else if(distance >= SLOW_DISTANCE){
+                char str_distance[4];
+                str_distance[3] = '\0';
+                itoa(distance, str_distance, 10);
+                message = str_distance;
                 MAX7219_clear();
               }
             }
