@@ -87,7 +87,7 @@ void MAX7219::_shiftBuffer(uint8_t *buffer, uint8_t columnData)
 void MAX7219::_displayBuffer(uint8_t *buffer)
 {
     for (uint8_t row = 1; row <= 8; row++) {
-        uint16_t rowData = 0;
+        uint32_t rowData = 0;
         for (uint8_t matrix = 0; matrix < m_num_matrices; matrix++) {
             rowData <<= 8;
             rowData |= buffer[matrix * 8 + row - 1];
@@ -96,7 +96,7 @@ void MAX7219::_displayBuffer(uint8_t *buffer)
     }
 }
 
-void MAX7219::_displayRow(uint8_t row, uint16_t data)
+void MAX7219::_displayRow(uint8_t row, uint32_t data)
 {
     PORTB &= ~(1 << m_cs_pin);      // Bring CS low
     
