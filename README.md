@@ -21,3 +21,8 @@ git clone https://github.com/Arief-AK/AVR_SPI_Communication.git
 ![alt text](docs/images/PlatformIO.png)
 
 Depending on the position of the object infront of the two ultrasonic sensors, an appropriate message will be displayed scrolling accross the cascaded matrices.
+
+<p align="center">
+    <img alt="VDGS" src="docs/images/center.jpg" width="30%">
+    <img alt="Implementation" src="docs/images/left.jpg" width="30%">
+</p>
