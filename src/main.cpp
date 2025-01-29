@@ -9,13 +9,20 @@
 #define CLK_PIN    PB5 // SCK
 #define CS_PIN     PB2 // SS
 
-// Define the Ultrasonic sensor variables
-#define TRIG_PIN PD2
-#define ECHO_PIN PD3
+// Define the Ultrasonic sensors variable
 #define STOP_DISTANCE 20
 #define SLOW_DISTANCE 30
 #define ONWARD_DISTANCE 40
-Ultrasonic sensor(TRIG_PIN, ECHO_PIN);
+
+// Ultrasonic 1
+#define TRIG_PIN_1 PD2
+#define ECHO_PIN_1 PD3
+Ultrasonic sensor_1(TRIG_PIN_1, ECHO_PIN_1);
+
+// Ultrasonic 2
+#define TRIG_PIN_2 PD4
+Ultrasonic sensor_2(TRIG_PIN_2, TRIG_PIN_2, true);
+
 
 // Define MAX7219 variables
 #define NUM_MATRICES 3
@@ -26,18 +33,21 @@ Ultrasonic sensor(TRIG_PIN, ECHO_PIN);
 #define UBRR F_CPU/16/BAUD-1
 
 // Interrupt variables
-volatile long DISTANCE = 0;
+volatile long DISTANCE_1 = 0;
+volatile long DISTANCE_2 = 0;
 volatile bool DISTANCE_MEASURED = false;
 
 ISR(TIMER1_COMPA_vect) {
     // Measure the distance
-    sensor.MeasureDistance();
+    sensor_1.MeasureDistance();
+    sensor_2.MeasureDistance();
 
     // Update the distance
-    DISTANCE = sensor.GetDistance();
+    DISTANCE_1 = sensor_1.GetDistance();
+    DISTANCE_2 = sensor_2.GetDistance();
 
     // Set the distance measured flag
-    DISTANCE_MEASURED = sensor.IsDistanceMeasured();
+    DISTANCE_MEASURED = sensor_1.IsDistanceMeasured() && sensor_2.IsDistanceMeasured();
 }
 
 void Timer1Init() {
@@ -106,7 +116,9 @@ int main()
     MAX7219 display(NUM_MATRICES, DATA_PIN, CLK_PIN, CS_PIN);
     display.SetScrollSpeed(SCROLL_SPEED);
 
-    sensor.SetDistances(STOP_DISTANCE, SLOW_DISTANCE, ONWARD_DISTANCE);
+    // Initialise sensor distances
+    sensor_1.SetDistances(STOP_DISTANCE, SLOW_DISTANCE, ONWARD_DISTANCE);
+    sensor_2.SetDistances(STOP_DISTANCE, SLOW_DISTANCE, ONWARD_DISTANCE);
 
     // Initialise message variable
     const char* message = "DEFAULT";
@@ -123,14 +135,24 @@ int main()
             // Reset the flag
             DISTANCE_MEASURED = false;
 
+            // Determine the object's position
+            if(DISTANCE_1 < DISTANCE_2){
+                message = "LEFT";
+            } else if(DISTANCE_1 > DISTANCE_2){
+                message = "RIGHT";
+            } else{
+                message = "CENTER";
+            }
+
             // Display the distance and message on UART
-            message = sensor.GetDistanceMessage();
-            uart.print("Distance: ");
-            uart.print_number(DISTANCE);
+            uart.print("Distance1: ");
+            uart.print_number(DISTANCE_1);
+            uart.print(" cm, Distance2: ");
+            uart.print_number(DISTANCE_2);
             uart.println(" cm");
 
             // Scroll the message on the display
-            if(DISTANCE > 0){
+            if(DISTANCE_1 > 0){
                 ScrollText(message, &display, &uart);
             }
         }
