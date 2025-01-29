@@ -10,7 +10,7 @@
 class Ultrasonic
 {
 public:
-    Ultrasonic(uint8_t trigPin, uint8_t echoPin);
+    Ultrasonic(uint8_t trigPin, uint8_t echoPin, bool singlePin = false);
 
     void SetDistances(long stopDistance, long slowDistance, long onwardDistance);
 
@@ -21,6 +21,7 @@ public:
     bool IsDistanceMeasured() {return m_distanceMeasured;}
 
 private:
+    bool m_singlePin;
     uint8_t m_trigPin, m_echoPin;
     uint8_t m_stopDistance, m_slowDistance, m_onwardDistance;
     volatile long m_distance;
