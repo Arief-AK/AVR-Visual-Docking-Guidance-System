@@ -156,8 +156,8 @@ int main()
     const char* message = "DEFAULT";
 
     // Initialise I2C
-    // I2C i2c(100000);
-    // i2c.Begin();
+    I2C i2c(100000);
+    i2c.Begin();
     
     // Initialize Timer1
     Timer1Init();
@@ -180,15 +180,15 @@ int main()
                 message = "CENTER";
             }
 
-            // Display the distance and message on UART
-            // uart.print("Distance1: ");
-            // uart.print_number(DISTANCE_1);
-            // uart.print(" cm, Distance2: ");
-            // uart.print_number(DISTANCE_2);
-            // uart.println(" cm");
+            //Display the distance and message on UART
+            uart.print("Distance1: ");
+            uart.print_number(DISTANCE_1);
+            uart.print(" cm, Distance2: ");
+            uart.print_number(DISTANCE_2);
+            uart.println(" cm");
 
             // Read compass values
-            //ReadCompas(&uart, &i2c);
+            ReadCompas(&uart, &i2c);
 
             // Scroll the message on the display
             if(DISTANCE_1 > 0 && DISTANCE_2 > 0){
