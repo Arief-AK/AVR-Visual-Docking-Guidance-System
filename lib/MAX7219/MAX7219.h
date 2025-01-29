@@ -22,7 +22,7 @@ private:
     SPI m_spi;
 
     void _send(uint8_t address, uint8_t value);
-    void _displayRow(uint8_t row, uint16_t data);
+    void _displayRow(uint8_t row, uint32_t data);
 };
 
 #endif  // MAX7219_H

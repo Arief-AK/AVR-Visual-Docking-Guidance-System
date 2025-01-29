@@ -18,7 +18,7 @@
 Ultrasonic sensor(TRIG_PIN, ECHO_PIN);
 
 // Define MAX7219 variables
-#define NUM_MATRICES 2
+#define NUM_MATRICES 3
 #define SCROLL_SPEED 25
 
 // Define UART variables
@@ -87,6 +87,13 @@ void ScrollText(const char *text, MAX7219* display, UART* uart)
             _delay_ms(SCROLL_SPEED);
         }
         AddSpace(buffer, display);
+    }
+
+    // Scroll the buffer to the end to ensure the entire message is displayed
+    for (uint8_t i = 0; i < NUM_MATRICES * 8; i++) {
+        display->_shiftBuffer(buffer, 0x00);
+        display->_displayBuffer(buffer);
+        _delay_ms(SCROLL_SPEED);
     }
 }
 
