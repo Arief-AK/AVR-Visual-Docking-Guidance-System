@@ -3,6 +3,7 @@
 #include <MAX7219.h>
 #include <Ultrasonic.h>
 #include <UART.h>
+#include <I2C.h>
 
 // Define the SPI pins
 #define DATA_PIN   PB3 // MOSI
@@ -107,22 +108,57 @@ void ScrollText(const char *text, MAX7219* display, UART* uart)
     }
 }
 
+void ReadCompas(UART* uart, I2C* i2c)
+{
+    // Debug
+    uart->println("Reading compass data...");
+
+    // Read the compass data
+    uart->println("Reading X MSB...");
+    uint8_t x_msb = i2c->readReg(0x1E, 0x03);
+    uart->println("Reading X LSB...");
+    uint8_t x_lsb = i2c->readReg(0x1E, 0x04);
+    uart->println("Reading Z MSB...");
+    uint8_t z_msb = i2c->readReg(0x1E, 0x05);
+    uart->println("Reading Z LSB...");
+    uint8_t z_lsb = i2c->readReg(0x1E, 0x06);
+    uart->println("Reading Y MSB...");
+    uint8_t y_msb = i2c->readReg(0x1E, 0x07);
+    uart->println("Reading Y LSB...");
+    uint8_t y_lsb = i2c->readReg(0x1E, 0x08);
+
+    int16_t x = (x_msb << 8) | x_lsb;
+    int16_t y = (y_msb << 8) | y_lsb;
+    int16_t z = (z_msb << 8) | z_lsb;
+
+    uart->print("X: ");
+    uart->print_number(x);
+    uart->print(", Y: ");
+    uart->print_number(y);
+    uart->print(", Z: ");
+    uart->print_number(z);
+}
+
 int main()
 {
     // Initialize the UART
     UART uart(UBRR);
 
-    // Intialise MAX7219 display and Ultrasonic sensor
+    // // Intialise MAX7219 display and Ultrasonic sensor
     MAX7219 display(NUM_MATRICES, DATA_PIN, CLK_PIN, CS_PIN);
     display.SetScrollSpeed(SCROLL_SPEED);
 
-    // Initialise sensor distances
+    // // Initialise sensor distances
     sensor_1.SetDistances(STOP_DISTANCE, SLOW_DISTANCE, ONWARD_DISTANCE);
     sensor_2.SetDistances(STOP_DISTANCE, SLOW_DISTANCE, ONWARD_DISTANCE);
 
-    // Initialise message variable
+    // // Initialise message variable
     const char* message = "DEFAULT";
 
+    // Initialise I2C
+    // I2C i2c(100000);
+    // i2c.Begin();
+    
     // Initialize Timer1
     Timer1Init();
 
@@ -145,14 +181,17 @@ int main()
             }
 
             // Display the distance and message on UART
-            uart.print("Distance1: ");
-            uart.print_number(DISTANCE_1);
-            uart.print(" cm, Distance2: ");
-            uart.print_number(DISTANCE_2);
-            uart.println(" cm");
+            // uart.print("Distance1: ");
+            // uart.print_number(DISTANCE_1);
+            // uart.print(" cm, Distance2: ");
+            // uart.print_number(DISTANCE_2);
+            // uart.println(" cm");
+
+            // Read compass values
+            //ReadCompas(&uart, &i2c);
 
             // Scroll the message on the display
-            if(DISTANCE_1 > 0){
+            if(DISTANCE_1 > 0 && DISTANCE_2 > 0){
                 ScrollText(message, &display, &uart);
             }
         }
