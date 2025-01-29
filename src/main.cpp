@@ -12,14 +12,14 @@
 // Define the Ultrasonic sensor variables
 #define TRIG_PIN PD2
 #define ECHO_PIN PD3
-#define STOP_DISTANCE 10
-#define SLOW_DISTANCE 15
-#define ONWARD_DISTANCE 20
+#define STOP_DISTANCE 20
+#define SLOW_DISTANCE 30
+#define ONWARD_DISTANCE 40
 Ultrasonic sensor(TRIG_PIN, ECHO_PIN);
 
 // Define MAX7219 variables
 #define NUM_MATRICES 2
-#define SCROLL_SPEED 50
+#define SCROLL_SPEED 25
 
 // Define UART variables
 #define BAUD 9600
@@ -28,7 +28,6 @@ Ultrasonic sensor(TRIG_PIN, ECHO_PIN);
 // Interrupt variables
 volatile long DISTANCE = 0;
 volatile bool DISTANCE_MEASURED = false;
-const char* MESSAGE = "DEFAULT";
 
 ISR(TIMER1_COMPA_vect) {
     // Measure the distance
@@ -61,7 +60,7 @@ void AddSpace(uint8_t *buffer, MAX7219* display)
     }
 }
 
-void ScrollText(const char *text, MAX7219* display)
+void ScrollText(const char *text, MAX7219* display, UART* uart)
 {
     uint8_t buffer[NUM_MATRICES * 8] = {0}; // Buffer to hold the display data
 
@@ -73,6 +72,8 @@ void ScrollText(const char *text, MAX7219* display)
             charIndex = *p - 'A'; // Adjust based on your font array
         } else if (*p >= '0' && *p <= '9') {
             charIndex = *p - '0' + 26; // Adjust based on your font array
+        } else if (*p >= 'a' && *p <= 'z') {
+            charIndex = *p - 'a' + 26 + 10; // Adjust based on your font array
         } else {
             continue; // Skip non-alphanumeric characters
         }
@@ -81,7 +82,7 @@ void ScrollText(const char *text, MAX7219* display)
             uint8_t columnData = display->_getCharPattern(charIndex, col);
             display->_shiftBuffer(buffer, columnData);
             display->_displayBuffer(buffer);
-            
+
             // Adjust the delay for scrolling speed
             _delay_ms(SCROLL_SPEED);
         }
@@ -96,10 +97,12 @@ int main()
 
     // Intialise MAX7219 display and Ultrasonic sensor
     MAX7219 display(NUM_MATRICES, DATA_PIN, CLK_PIN, CS_PIN);
+    display.SetScrollSpeed(SCROLL_SPEED);
+
     sensor.SetDistances(STOP_DISTANCE, SLOW_DISTANCE, ONWARD_DISTANCE);
 
     // Initialise message variable
-    const char* message = "Onward";
+    const char* message = "DEFAULT";
 
     // Initialize Timer1
     Timer1Init();
@@ -118,11 +121,10 @@ int main()
             uart.print("Distance: ");
             uart.print_number(DISTANCE);
             uart.println(" cm");
-            uart.println(message);
 
             // Scroll the message on the display
             if(DISTANCE > 0){
-                ScrollText(message, &display);
+                ScrollText(message, &display, &uart);
             }
         }
     }

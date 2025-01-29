@@ -101,9 +101,8 @@ void MAX7219::_displayRow(uint8_t row, uint16_t data)
     PORTB &= ~(1 << m_cs_pin);      // Bring CS low
     
     for (int i = 0; i < m_num_matrices; i++) {
-        uint8_t matrixData = (data >> (8 * (m_num_matrices - i - 1))) & 0xFF;
         m_spi.Send(row);            // Send the row address
-        m_spi.Send(matrixData);     // Send the corresponding matrix data
+        m_spi.Send(data >> (8 * (m_num_matrices - 1 - i))); // Send the row data
     }
     
     PORTB |= (1 << m_cs_pin);       // Bring CS high

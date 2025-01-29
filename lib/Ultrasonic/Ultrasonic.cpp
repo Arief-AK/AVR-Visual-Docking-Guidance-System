@@ -48,26 +48,21 @@ void Ultrasonic::MeasureDistance()
 
 char *Ultrasonic::GetDistanceMessage()
 {
-    char* message;
+    static char message[7];
 
     // Determine the distance message
-    if (m_distance <= m_stopDistance)
+    if (m_distance <= m_stopDistance - 5)
     {
-        char str_distance[5];
-        strcpy(str_distance, "Stop");
-        message = str_distance;
-    }
-    else if (m_distance <= m_slowDistance && m_distance > m_stopDistance)
+        strcpy(message, "DANGER");
+    } else if (m_distance <= m_stopDistance)
     {
-        char str_distance[5];
-        strcpy(str_distance, "Slow");
-        message = str_distance;
-    }
-    else if (m_distance >= m_onwardDistance)
+        strcpy(message, "STOP");
+    } else if (m_distance <= m_slowDistance && m_distance > m_stopDistance)
     {
-        char str_distance[4];
-        itoa(m_distance, str_distance, 10);
-        message = str_distance;
+        strcpy(message, "SLOW");
+    } else if (m_distance >= m_onwardDistance)
+    {
+        itoa(m_distance, message, 10);
     }
 
     return message;

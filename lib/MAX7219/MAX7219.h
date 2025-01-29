@@ -2,7 +2,6 @@
 #define MAX7219_H
 
 #include <avr/pgmspace.h>
-#include <util/delay.h>
 
 #include <SPI.h>
 
