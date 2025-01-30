@@ -1,9 +1,9 @@
 #include <avr/interrupt.h>
 
 #include <MAX7219.h>
+#include <HMC5883L.h>
 #include <Ultrasonic.h>
 #include <UART.h>
-#include <I2C.h>
 
 // Define the SPI pins
 #define DATA_PIN   PB3 // MOSI
@@ -24,6 +24,8 @@ Ultrasonic sensor_1(TRIG_PIN_1, ECHO_PIN_1);
 #define TRIG_PIN_2 PD4
 Ultrasonic sensor_2(TRIG_PIN_2, TRIG_PIN_2, true);
 
+// Compass Module
+HMC5883L compass;
 
 // Define MAX7219 variables
 #define NUM_MATRICES 3
@@ -33,11 +35,15 @@ Ultrasonic sensor_2(TRIG_PIN_2, TRIG_PIN_2, true);
 #define BAUD 9600
 #define UBRR F_CPU/16/BAUD-1
 
-// Interrupt variables
+// Interrupt 1 variables
 volatile long DISTANCE_1 = 0;
 volatile long DISTANCE_2 = 0;
 volatile bool DISTANCE_MEASURED = false;
 
+// Interrupt 2 variables
+volatile int16_t z_plane = 0;
+
+// Interrupt 1
 ISR(TIMER1_COMPA_vect) {
     // Measure the distance
     sensor_1.MeasureDistance();
@@ -51,6 +57,13 @@ ISR(TIMER1_COMPA_vect) {
     DISTANCE_MEASURED = sensor_1.IsDistanceMeasured() && sensor_2.IsDistanceMeasured();
 }
 
+// Interrupt 2
+ISR(TIMER2_COMPA_vect) {
+    // Read compass values
+    compass.ReadCompass();
+    z_plane = compass.GetZ();
+}
+
 void Timer1Init() {
     // Set up Timer1 with a prescaler of 64 and CTC mode
     TCCR1B |= (1 << WGM12) | (1 << CS11) | (1 << CS10);
@@ -58,6 +71,17 @@ void Timer1Init() {
     OCR1A = (F_CPU / 64 / 20) - 1;
     // Enable Timer1 compare interrupt
     TIMSK1 |= (1 << OCIE1A);
+}
+
+void Timer2Init() {
+    // Set Timer2 to CTC mode
+    TCCR2A |= (1 << WGM21);
+    // Set compare value for 1ms interval (assuming 16MHz clock and prescaler of 64)
+    OCR2A = 249;
+    // Enable Timer2 compare interrupt
+    TIMSK2 |= (1 << OCIE2A);
+    // Start Timer2 with prescaler of 64
+    TCCR2B |= (1 << CS22);
 }
 
 void AddSpace(uint8_t *buffer, MAX7219* display)
@@ -108,59 +132,25 @@ void ScrollText(const char *text, MAX7219* display, UART* uart)
     }
 }
 
-void ReadCompas(UART* uart, I2C* i2c)
-{
-    // Debug
-    uart->println("Reading compass data...");
-
-    // Read the compass data
-    uart->println("Reading X MSB...");
-    uint8_t x_msb = i2c->readReg(0x1E, 0x03);
-    uart->println("Reading X LSB...");
-    uint8_t x_lsb = i2c->readReg(0x1E, 0x04);
-    uart->println("Reading Z MSB...");
-    uint8_t z_msb = i2c->readReg(0x1E, 0x05);
-    uart->println("Reading Z LSB...");
-    uint8_t z_lsb = i2c->readReg(0x1E, 0x06);
-    uart->println("Reading Y MSB...");
-    uint8_t y_msb = i2c->readReg(0x1E, 0x07);
-    uart->println("Reading Y LSB...");
-    uint8_t y_lsb = i2c->readReg(0x1E, 0x08);
-
-    int16_t x = (x_msb << 8) | x_lsb;
-    int16_t y = (y_msb << 8) | y_lsb;
-    int16_t z = (z_msb << 8) | z_lsb;
-
-    uart->print("X: ");
-    uart->print_number(x);
-    uart->print(", Y: ");
-    uart->print_number(y);
-    uart->print(", Z: ");
-    uart->print_number(z);
-}
-
 int main()
 {
     // Initialize the UART
     UART uart(UBRR);
 
-    // // Intialise MAX7219 display and Ultrasonic sensor
+    // Intialise MAX7219 display
     MAX7219 display(NUM_MATRICES, DATA_PIN, CLK_PIN, CS_PIN);
     display.SetScrollSpeed(SCROLL_SPEED);
 
-    // // Initialise sensor distances
+    // Initialise sensor distances
     sensor_1.SetDistances(STOP_DISTANCE, SLOW_DISTANCE, ONWARD_DISTANCE);
     sensor_2.SetDistances(STOP_DISTANCE, SLOW_DISTANCE, ONWARD_DISTANCE);
 
     // // Initialise message variable
     const char* message = "DEFAULT";
-
-    // Initialise I2C
-    I2C i2c(100000);
-    i2c.Begin();
     
-    // Initialize Timer1
+    // Initialize Timers
     Timer1Init();
+    Timer2Init();
 
     // Enable global interrupts
     sei();
@@ -187,12 +177,13 @@ int main()
             uart.print_number(DISTANCE_2);
             uart.println(" cm");
 
-            // Read compass values
-            ReadCompas(&uart, &i2c);
-
             // Scroll the message on the display
             if(DISTANCE_1 > 0 && DISTANCE_2 > 0){
-                ScrollText(message, &display, &uart);
+                if(z_plane != 0){
+                    ScrollText("OBJECT IS NOT FLAT.", &display, &uart);
+                } else {
+                    ScrollText(message, &display, &uart);
+                }
             }
         }
     }
